@@ -9,14 +9,11 @@ var io = require('socket.io')(http, {
         origin: "*",
     }
 });
-// var cors = require('cors');
-//         app.use(cors())
 dotenv.config({path:'./config.env'});
 require('./db/conn')
-// const DB= process.env.Database;
 app.use(express.json())
 app.use(require('./routes/auth'));
-
+const { addgame,getGame,list,delgame}=require('./gamelist');
 const PORT= process.env.PORT;
 var arr=[];
 
@@ -27,14 +24,23 @@ io.on('connection',(socket)=>{
     // make the user jjoin room
     socket.on('joinRoom',(obj)=>{
         // i++;
-        arr.push(obj);
-        console.log(obj.room ,"    <<<<==============>");
-        socket.join(obj.room);
+        let len=getGame(obj.room)
+        if(len<2)
+        {
+            addgame(obj);
+            socket.join(obj.room);
+
+        }
+        else
+        socket.emit('joinRoom',{message:"waiting",status:404})
+        // console.log(socket.server.engine.clientsCount);
+        
         
     })
     socket.on('message', data => {
         // console.log("your data : ", data.squares)
-        console.log("your data : ", data.X," ",data.Y)
+        // console.log("your data : ", data.X," ",data.Y)
+        // console.log(data.winner ,"    <<<<==============>");
         if (data.turn === 'X') {
             data.turn='O'
         }
@@ -50,13 +56,17 @@ io.on('connection',(socket)=>{
 
 
     socket.on('disconnect', () => {
+        // console.log(socket.id,"   in dis ")
+        delgame(socket.id)
         console.log('user disconnected');
     });
 })
 
 
 
-
+app.get("/list",(req,res)=>{
+    res.send(list())
+})
 
 
 
